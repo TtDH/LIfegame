@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+        <meta charset="utf-8">
+    </head>
+    <body>
+        <h1>lifegame</h1>
+        <input id="start" value="start" type="button" onclick="start();">
+        <input id="stop" value="stop" type="button" onclick="stop();">
+        <input id="speed" value="speed" type="range" min="10" max="1000" step="10">
+        <br><br>
+        <canvas id="myCanvas" width="200" height="200"></canvas>
+        <script>
+            // 初期化、宣言
+            var arraySize=10;
+            var cellSize=40; 
+            var i;
+            var j;
+            var array = new Array(arraySize);
+            for(i=0; i<arraySize; i++){
+                array[i] = (new Array(arraySize)).fill(0);
+            }
+            // console.log(array);
+            var cvs = document.getElementById("myCanvas");
+            var ctx = cvs.getContext("2d");
+
+            var timer=1000;
+            var slider = document.getElementById("speed");
+            slider.addEventListener("change", function(){
+                console.log("speed: "+this.value);
+                setTimer(this.value);
+            })
+
+            function draw(){
+                cvs.width = arraySize * cellSize;
+                cvs.height = arraySize * cellSize;
+                
+                for(i=0; i<=arraySize; i++){
+                    // 縦線
+                    ctx.beginPath();
+                    ctx.moveTo(i*cellSize, 0);
+                    ctx.lineTo(i*cellSize, arraySize*cellSize);
+                    ctx.stroke();
+                    ctx.closePath();
+                    // 横線
+                    ctx.beginPath();
+                    ctx.moveTo(0, i*cellSize);
+                    ctx.lineTo(arraySize*cellSize, i*cellSize);
+                    ctx.stroke();
+                    ctx.closePath();
+                }
+
+                var j;
+                ctx.fillStyle = "black";
+                for(i=0; i<arraySize; i++){
+                    for(j=0; j<arraySize; j++){
+                        if(array[i][j]==1)ctx.fillRect(i*cellSize, j*cellSize, cellSize, cellSize);
+                    }
+                }
+            }
+
+            window.onload = function(){
+                draw()
+            };
+
+            function changeCell(e){
+                if(!(e.target.id == "myCanvas"))return false;
+                var rect = e.target.getBoundingClientRect();
+                var x = e.clientX; 
+                var y = e.clientY;
+                // canvas内にカーソルがあるか
+                if(!(rect.left <= x && x <= rect.left+cvs.width &&
+                    rect.top <= y && y <= rect.top+cvs.height))return false;
+                
+                x = e.clientX - rect.left;
+                y = e.clientY - rect.top;
+
+                var cellX = Math.floor(x/cellSize);
+                var cellY = Math.floor(y/cellSize);
+
+                if(array[cellX][cellY]==0)array[cellX][cellY]=1;
+                else array[cellX][cellY]=0;
+                console.log("changeCell:"+cellX+","+cellY);
+                draw();
+            }
+
+            var isStop=false;
+
+            function setTimer(t){
+                timer = t;
+            }
+
+            function start(){
+
+                var id = setInterval(function(){
+                    if(isStop){
+                        clearInterval(id);
+                        isStop = false;
+                    }
+                    else advanceCell();
+                },timer);
+            }
+
+            function advanceCell(){
+                var i;
+                var tempArray = new Array(arraySize);
+                for(i=0; i<arraySize; i++){
+                    tempArray[i] = array[i].slice();
+                }
+                var r,c,k;
+                for(r=0; r<arraySize; r++){
+                    for(c=0; c<arraySize; c++){
+                        var aliveCount=0;
+                        for(k=0; k<8; k++){
+                            var range = Math.sqrt(2);
+                            var dr = Math.round(range*Math.cos(k * 2*Math.PI/8));
+                            var dc = Math.round(range*Math.sin(k * 2*Math.PI/8));
+                            if(0<=r+dr && r+dr<arraySize && 
+                                0<=c+dc && c+dc<arraySize && 
+                                array[r+dr][c+dc] == 1)
+                                aliveCount++;
+                        }
+                        // console.log("r:"+r+" c:"+c+" aliveCount:"+aliveCount);
+                        if(array[r][c]==0 && aliveCount==3)tempArray[r][c]=1;
+                        if(array[r][c]==1){
+                            switch(aliveCount){
+                                case 2:
+                                case 3:
+                                    tempArray[r][c] = 1;
+                                    break;
+                                default:
+                                    tempArray[r][c] = 0;
+                                    break;
+                            }
+                        }
+                    }
+                }
+                array = tempArray;                
+                draw();
+            }
+
+            function stop(){
+                isStop = true;
+                // console.log(isStop);
+            }
+
+            document.addEventListener("click", changeCell);
+        </script>
+    </body>
+</html>
